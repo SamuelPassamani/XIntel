@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XIntel Command Center v2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google API Client Library -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .scrollbar::-webkit-scrollbar { width: 8px; }
+        .scrollbar::-webkit-scrollbar-track { background: #111827; }
+        .scrollbar::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 20px; border: 2px solid #111827; }
+        .gem-button.active { background-color: #4f46e5; color: white; box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
+        .gem-button { transition: all 0.2s ease-in-out; }
+        .gem-button:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+        .prose { max-width: 100%; }
+        .prose code::before, .prose code::after { content: ''; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex h-screen antialiased overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-gray-800 p-6 flex flex-col justify-between shadow-2xl flex-shrink-0">
+        <div>
+            <h1 class="text-2xl font-bold text-white mb-2">XIntel</h1>
+            <h2 class="text-sm text-indigo-400 mb-8">Ecossistema de Inteligência</h2>
+
+            <!-- Secção de Poderes -->
+            <nav class="space-y-2">
+                <h3 class="text-xs uppercase text-gray-400 font-semibold tracking-wider px-4">Poderes</h3>
+                <button id="btn-xgem" class="gem-button w-full text-left px-4 py-2 rounded-lg flex items-center space-x-3 active">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/><path d="m15 5 3 3"/></svg>
+                    <span>XGem <span class="text-xs text-gray-400 block">Arquiteto</span></span>
+                </button>
+                <button id="btn-xthinks" class="gem-button w-full text-left px-4 py-2 rounded-lg flex items-center space-x-3">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/><line x1="10" y1="12.5" x2="14" y2="12.5"/></svg>
+                    <span>XThinks <span class="text-xs text-gray-400 block">Produtor</span></span>
+                </button>
+                <button id="btn-xcerebro" class="gem-button w-full text-left px-4 py-2 rounded-lg flex items-center space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M12 2a10 10 0 1 0 10 10c0-4.42-2.87-8.17-7-9.58"/><path d="M22 2c-2.5 3.5-4.5 7.5-4.5 11.5s2 8 4.5 11.5"/><path d="M2 22c2.5-3.5 4.5-7.5 4.5-11.5S4.5 3.5 2 2"/></svg>
+                    <span>XCérebro <span class="text-xs text-gray-400 block">Curador</span></span>
+                </button>
+                <button id="btn-xsearch" class="gem-button w-full text-left px-4 py-2 rounded-lg flex items-center space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span>XSearch <span class="text-xs text-gray-400 block">Investigador</span></span>
+                </button>
+            </nav>
+            
+            <!-- Secção de Memória / Drive -->
+            <div class="mt-8">
+                <h3 class="text-xs uppercase text-gray-400 font-semibold tracking-wider px-4 mb-2">Memória Persistente</h3>
+                <div id="drive-status-disconnected" class="p-4 bg-gray-700/50 rounded-lg">
+                    <p class="text-xs text-gray-400 mb-3">Conecte-se ao seu Google Drive para ativar a memória persistente do ecossistema.</p>
+                    <button id="authorize_button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg text-sm">Conectar Google Drive</button>
+                </div>
+                <div id="drive-status-connected" class="hidden p-4 bg-green-900/30 rounded-lg border border-green-500/30">
+                    <p class="text-sm font-semibold text-green-300 mb-3">Memória Ativa</p>
+                    <p class="text-xs text-gray-400 mb-3">Conectado ao Google Drive. O contexto dos ficheiros selecionados será usado.</p>
+                    <button id="signout_button" class="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-2 px-4 rounded-lg text-sm">Desconectar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Perfil do Governador Moral -->
+        <div class="border-t border-gray-700 pt-4">
+            <div class="flex items-center space-x-3 px-4">
+                <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white flex-shrink-0">SP</div>
+                <div>
+                    <p class="font-semibold text-white">Samuel Passamani</p>
+                    <p class="text-xs text-indigo-300">Governador Moral</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Área Principal do Chat -->
+    <main class="flex-1 flex flex-col h-screen bg-gray-900">
+        <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/50 p-4 flex items-center justify-between flex-shrink-0">
+            <div>
+                <h2 id="active-gem-name" class="text-xl font-semibold text-white">XGem</h2>
+                <p id="active-gem-role" class="text-sm text-gray-400">Poder Legislativo / O Arquiteto</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="load-memory-button" title="Carregar Ficheiro do Drive" class="p-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                </button>
+                <button id="export-button" title="Exportar Conversa para Drive (PESC)" class="p-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+                 <button id="clear-button" title="Limpar Conversa" class="p-2 rounded-md hover:bg-gray-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        </header>
+        
+        <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar">
+            <!-- As mensagens do chat serão inseridas aqui -->
+        </div>
+
+        <!-- Área de Input -->
+        <div class="p-6 bg-gray-900 border-t border-gray-700/50 flex-shrink-0">
+            <div class="bg-gray-800 rounded-lg flex items-center p-2 shadow-inner">
+                <textarea id="user-input" class="flex-1 bg-transparent text-gray-200 placeholder-gray-500 focus:outline-none p-2 resize-none scrollbar" placeholder="Digite sua instrução para o Gem ativo..." rows="1"></textarea>
+                <button id="send-button" class="bg-indigo-600 text-white rounded-md p-2 ml-2 hover:bg-indigo-500 transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Modal do Seletor de Ficheiros do Drive -->
+    <div id="file-picker-modal" class="modal fixed inset-0 bg-black bg-opacity-75 items-center justify-center">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-1/2 max-w-2xl h-2/3 flex flex-col">
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-white">Selecionar Dossiê de Conhecimento</h3>
+                <button id="close-modal-button" class="p-1 rounded-full hover:bg-gray-700">&times;</button>
+            </div>
+            <div id="file-list" class="flex-1 p-4 overflow-y-auto scrollbar">
+                <!-- A lista de ficheiros será inserida aqui -->
+                <p class="text-gray-400">A carregar ficheiros do Google Drive...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO DAS APIs (IMPORTANTE) ---
+        // Para uma implementação real, estes valores devem ser obtidos na Google Cloud Console.
+        // Deixei-os como placeholders para demonstrar a arquitetura.
+        const CLIENT_ID = 'SEU_CLIENT_ID.apps.googleusercontent.com';
+        const API_KEY = ''; // A chave da API do Gemini será fornecida pelo ambiente do Canvas
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        // --- ELEMENTOS DA UI ---
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const activeGemName = document.getElementById('active-gem-name');
+        const activeGemRole = document.getElementById('active-gem-role');
+        const gemButtons = document.querySelectorAll('.gem-button');
+        const authorizeButton = document.getElementById('authorize_button');
+        const signoutButton = document.getElementById('signout_button');
+        const driveStatusConnected = document.getElementById('drive-status-connected');
+        const driveStatusDisconnected = document.getElementById('drive-status-disconnected');
+        const loadMemoryButton = document.getElementById('load-memory-button');
+        const exportButton = document.getElementById('export-button');
+        const clearButton = document.getElementById('clear-button');
+        const filePickerModal = document.getElementById('file-picker-modal');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const fileListContainer = document.getElementById('file-list');
+
+        // --- ESTADO DA APLICAÇÃO ---
+        const state = {
+            activeGem: 'xgem',
+            conversationHistory: [],
+            isLoading: false,
+            projectMemory: '',
+            driveConnected: false
+        };
+        
+        // --- PROMPTS MESTRE PARA CADA GEM ---
+        const gemPrompts = {
+            xgem: `Você é o XGem...`, // Prompts completos omitidos por brevidade
+            xthinks: `Você é o XThinks...`,
+            xcerebro: `Você é o XCérebro...`,
+            xsearch: `Você é o XSearch...`
+        };
+
+        const gemInfo = {
+            xgem: { name: "XGem", role: "Poder Legislativo / O Arquiteto" },
+            xthinks: { name: "XThinks", role: "Poder Executivo / O Produtor" },
+            xcerebro: { name: "XCérebro", role: "Poder Judiciário / O Curador" },
+            xsearch: { name: "XSearch", role: "Poder Auxiliar / O Investigador" }
+        };
+
+        // --- FUNÇÕES PRINCIPAIS ---
+
+        function addMessage(sender, text) {
+            // ... (código para adicionar mensagem à UI)
+        }
+        
+        function showLoadingIndicator() {
+            // ... (código para mostrar indicador de carregamento)
+        }
+
+        function hideLoadingIndicator() {
+            // ... (código para esconder indicador de carregamento)
+        }
+
+        async function sendMessageToGemini(prompt) {
+            if (state.isLoading) return;
+            setLoading(true);
+
+            addMessage('user', prompt);
+            showLoadingIndicator();
+            
+            const isFirstMessage = state.conversationHistory.length === 0;
+            const memoryContext = state.projectMemory.trim();
+
+            let historyForAPI = [];
+            
+            historyForAPI.push({ role: "user", parts: [{ text: gemPrompts[state.activeGem] }] });
+            historyForAPI.push({ role: "model", parts: [{ text: `Entendido. Estou pronto para atuar como ${gemInfo[state.activeGem].name}.` }] });
+            
+            if (isFirstMessage && memoryContext) {
+                 historyForAPI.push({ role: "user", parts: [{ text: `CONTEXTO DE SESSÕES ANTERIORES (MEMÓRIA DE PROJETO):\n---\n${memoryContext}\n---\nCom base no contexto acima, vamos começar.` }] });
+                 historyForAPI.push({ role: "model", parts: [{ text: "Contexto e memória de projeto assimilados. Estou pronto para continuar." }] });
+            }
+
+            historyForAPI.push(...state.conversationHistory);
+            state.conversationHistory.push({ role: "user", parts: [{ text: prompt }] });
+            
+            const finalPayload = { contents: [...historyForAPI, { role: "user", parts: [{ text: prompt }] }] };
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalPayload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorBody.error.message}`);
+                }
+
+                const result = await response.json();
+                hideLoadingIndicator();
+
+                if (result.candidates && result.candidates[0]?.content?.parts[0]) {
+                    const gemResponse = result.candidates[0].content.parts[0].text;
+                    addMessage('gemini', gemResponse);
+                    state.conversationHistory.push({ role: "model", parts: [{ text: gemResponse }] });
+                } else {
+                    addMessage('gemini', 'Desculpe, não consegui gerar uma resposta.');
+                }
+            } catch (error) {
+                hideLoadingIndicator();
+                console.error("Erro ao chamar a API do Gemini:", error);
+                addMessage('gemini', `Ocorreu um erro: ${error.message}.`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function setLoading(stateFlag) {
+            state.isLoading = stateFlag;
+            userInput.disabled = stateFlag;
+            sendButton.disabled = stateFlag;
+        }
+
+        function switchGem(newGem) {
+            if (newGem === state.activeGem) return;
+            state.activeGem = newGem;
+            clearConversation();
+            activeGemName.textContent = gemInfo[state.activeGem].name;
+            activeGemRole.textContent = gemInfo[state.activeGem].role;
+            gemButtons.forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${newGem}`).classList.add('active');
+        }
+        
+        function clearConversation() {
+            state.conversationHistory = [];
+            chatContainer.innerHTML = '';
+            addMessage('system', `Modo **${gemInfo[state.activeGem].name}** ativado.`);
+        }
+
+        /**
+         * Inicializa o cliente GAPI para a API do Google Drive.
+         */
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        /**
+         * Inicializa o cliente GIS para autenticação OAuth 2.0.
+         */
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // O callback é definido dinamicamente
+            });
+            gisInited = true;
+            checkAuthStatus();
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+            checkAuthStatus();
+        }
+        
+        function checkAuthStatus() {
+            if (gapiInited && gisInited) {
+                authorizeButton.disabled = false;
+            }
+        }
+
+        function handleAuthClick() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                updateUiForAuth(true);
+                addMessage('system', 'Conexão com o Google Drive estabelecida com sucesso.');
+            };
+
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+        
+        function handleSignoutClick() {
+            const token = gapi.client.getToken();
+            if (token !== null) {
+                google.accounts.oauth2.revoke(token.access_token, () => {
+                    gapi.client.setToken('');
+                    updateUiForAuth(false);
+                    addMessage('system', 'Desconectado do Google Drive.');
+                });
+            }
+        }
+        
+        function updateUiForAuth(isConnected) {
+            state.driveConnected = isConnected;
+            driveStatusConnected.classList.toggle('hidden', !isConnected);
+            driveStatusDisconnected.classList.toggle('hidden', isConnected);
+            loadMemoryButton.disabled = !isConnected;
+            exportButton.disabled = !isConnected;
+        }
+
+        async function showFilePicker() {
+            if (!state.driveConnected) {
+                addMessage('system', 'Por favor, conecte-se ao Google Drive primeiro.');
+                return;
+            }
+            filePickerModal.classList.add('active');
+            fileListContainer.innerHTML = '<p class="text-gray-400">A carregar ficheiros...</p>';
+
+            try {
+                // Esta é uma chamada real à API do Drive para listar ficheiros .md
+                const response = await gapi.client.drive.files.list({
+                    'pageSize': 20,
+                    'fields': 'files(id, name)',
+                    'q': "mimeType='text/markdown' or mimeType='text/plain'"
+                });
+                const files = response.result.files;
+                fileListContainer.innerHTML = '';
+                if (files && files.length > 0) {
+                    files.forEach(file => {
+                        const fileElement = document.createElement('button');
+                        fileElement.className = 'w-full text-left p-3 rounded-md hover:bg-gray-700 transition-colors';
+                        fileElement.textContent = file.name;
+                        fileElement.onclick = () => loadFileContent(file.id, file.name);
+                        fileListContainer.appendChild(fileElement);
+                    });
+                } else {
+                    fileListContainer.innerHTML = '<p class="text-gray-400">Nenhum ficheiro de texto (.md, .txt) encontrado.</p>';
+                }
+
+            } catch (err) {
+                console.error(err);
+                fileListContainer.innerHTML = `<p class="text-red-400">Erro ao listar ficheiros: ${err.message}</p>`;
+            }
+        }
+
+        async function loadFileContent(fileId, fileName) {
+            try {
+                const response = await gapi.client.drive.files.get({
+                    fileId: fileId,
+                    alt: 'media'
+                });
+                state.projectMemory = response.body;
+                addMessage('system', `Memória carregada a partir do ficheiro: **${fileName}**. O conteúdo será usado na próxima conversa.`);
+            } catch (err) {
+                 addMessage('system', `Erro ao carregar o conteúdo do ficheiro: ${err.message}`);
+            } finally {
+                filePickerModal.classList.remove('active');
+            }
+        }
+        
+        async function exportConversationToDrive() {
+            if (state.conversationHistory.length === 0) {
+                 addMessage('system', 'A conversa está vazia. Não há nada para exportar.');
+                return;
+            }
+            
+            let markdownContent = `# Dossiê de Sessão XIntel\n\n...`; // Lógica de exportação
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `XIntel_Sessao_${state.activeGem}_${timestamp}.md`;
+            
+            try {
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+
+                const metadata = {
+                    'name': fileName,
+                    'mimeType': 'text/markdown'
+                };
+
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    'Content-Type: text/markdown\r\n\r\n' +
+                    markdownContent +
+                    close_delim;
+
+                const request = await gapi.client.request({
+                    'path': '/upload/drive/v3/files',
+                    'method': 'POST',
+                    'params': {'uploadType': 'multipart'},
+                    'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'},
+                    'body': multipartRequestBody
+                });
+                
+                addMessage('system', `Conversa exportada com sucesso para o Google Drive como **${fileName}**.`);
+
+            } catch (err) {
+                 addMessage('system', `Erro ao exportar para o Drive: ${err.message}`);
+            }
+        }
+
+
+        // --- Event Listeners ---
+        authorizeButton.addEventListener('click', handleAuthClick);
+        signoutButton.addEventListener('click', handleSignoutClick);
+        loadMemoryButton.addEventListener('click', showFilePicker);
+        closeModalButton.addEventListener('click', () => filePickerModal.classList.remove('active'));
+        exportButton.addEventListener('click', exportConversationToDrive);
+        clearButton.addEventListener('click', clearConversation);
+        
+        gemButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const gemId = button.id.replace('btn-', '');
+                switchGem(gemId);
+            });
+        });
+
+        // --- Inicialização ---
+        window.onload = () => {
+            gapiLoaded();
+            gisLoaded();
+        };
+
+        addMessage('system', 'Bem-vindo ao XIntel Command Center. A integração com o Google Drive está pronta para ser ativada.');
+
+    </script>
+</body>
+</html>
