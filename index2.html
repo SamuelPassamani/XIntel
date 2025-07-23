@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Google API Client Library -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .scrollbar::-webkit-scrollbar { width: 8px; }
@@ -59,7 +59,7 @@
                 <h3 class="text-xs uppercase text-gray-400 font-semibold tracking-wider px-4 mb-2">Memória Persistente</h3>
                 <div id="drive-status-disconnected" class="p-4 bg-gray-700/50 rounded-lg">
                     <p class="text-xs text-gray-400 mb-3">Conecte-se ao seu Google Drive para ativar a memória persistente do ecossistema.</p>
-                    <button id="authorize_button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg text-sm">Conectar Google Drive</button>
+                    <button id="authorize_button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg text-sm" disabled>Aguardando APIs...</button>
                 </div>
                 <div id="drive-status-connected" class="hidden p-4 bg-green-900/30 rounded-lg border border-green-500/30">
                     <p class="text-sm font-semibold text-green-300 mb-3">Memória Ativa</p>
@@ -89,10 +89,10 @@
                 <p id="active-gem-role" class="text-sm text-gray-400">Poder Legislativo / O Arquiteto</p>
             </div>
             <div class="flex items-center space-x-2">
-                <button id="load-memory-button" title="Carregar Ficheiro do Drive" class="p-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="load-memory-button" title="Carregar Ficheiro do Drive" class="p-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
                 </button>
-                <button id="export-button" title="Exportar Conversa para Drive (PESC)" class="p-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="export-button" title="Exportar Conversa para Drive (PESC)" class="p-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 </button>
                  <button id="clear-button" title="Limpar Conversa" class="p-2 rounded-md hover:bg-gray-700 transition-colors">
@@ -125,7 +125,7 @@
             </div>
             <div id="file-list" class="flex-1 p-4 overflow-y-auto scrollbar">
                 <!-- A lista de ficheiros será inserida aqui -->
-                <p class="text-gray-400">A carregar ficheiros do Google Drive...</p>
+                <p class="text-gray-400">Conecte-se ao Google Drive para ver os seus ficheiros.</p>
             </div>
         </div>
     </div>
@@ -133,9 +133,9 @@
     <script>
         // --- CONFIGURAÇÃO DAS APIs (IMPORTANTE) ---
         // Para uma implementação real, estes valores devem ser obtidos na Google Cloud Console.
-        // Deixei-os como placeholders para demonstrar a arquitetura.
-        const CLIENT_ID = 'SEU_CLIENT_ID.apps.googleusercontent.com';
-        const API_KEY = ''; // A chave da API do Gemini será fornecida pelo ambiente do Canvas
+        const CLIENT_ID = '356634970750-rib59b62v1h4k4r2qme8c76a9one10pf.apps.googleusercontent.com';
+        const GEMINI_API_KEY = 'AIzaSyAnXS2Mg_XlR78L1l08q5rSIsXvhwtt2L4'; // Deixe em branco, será fornecida pelo ambiente do Canvas
+
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 
@@ -144,22 +144,24 @@
         let gisInited = false;
 
         // --- ELEMENTOS DA UI ---
-        const chatContainer = document.getElementById('chat-container');
-        const userInput = document.getElementById('user-input');
-        const sendButton = document.getElementById('send-button');
-        const activeGemName = document.getElementById('active-gem-name');
-        const activeGemRole = document.getElementById('active-gem-role');
-        const gemButtons = document.querySelectorAll('.gem-button');
-        const authorizeButton = document.getElementById('authorize_button');
-        const signoutButton = document.getElementById('signout_button');
-        const driveStatusConnected = document.getElementById('drive-status-connected');
-        const driveStatusDisconnected = document.getElementById('drive-status-disconnected');
-        const loadMemoryButton = document.getElementById('load-memory-button');
-        const exportButton = document.getElementById('export-button');
-        const clearButton = document.getElementById('clear-button');
-        const filePickerModal = document.getElementById('file-picker-modal');
-        const closeModalButton = document.getElementById('close-modal-button');
-        const fileListContainer = document.getElementById('file-list');
+        const ui = {
+            chatContainer: document.getElementById('chat-container'),
+            userInput: document.getElementById('user-input'),
+            sendButton: document.getElementById('send-button'),
+            activeGemName: document.getElementById('active-gem-name'),
+            activeGemRole: document.getElementById('active-gem-role'),
+            gemButtons: document.querySelectorAll('.gem-button'),
+            authorizeButton: document.getElementById('authorize_button'),
+            signoutButton: document.getElementById('signout_button'),
+            driveStatusConnected: document.getElementById('drive-status-connected'),
+            driveStatusDisconnected: document.getElementById('drive-status-disconnected'),
+            loadMemoryButton: document.getElementById('load-memory-button'),
+            exportButton: document.getElementById('export-button'),
+            clearButton: document.getElementById('clear-button'),
+            filePickerModal: document.getElementById('file-picker-modal'),
+            closeModalButton: document.getElementById('close-modal-button'),
+            fileListContainer: document.getElementById('file-list')
+        };
 
         // --- ESTADO DA APLICAÇÃO ---
         const state = {
@@ -172,10 +174,10 @@
         
         // --- PROMPTS MESTRE PARA CADA GEM ---
         const gemPrompts = {
-            xgem: `Você é o XGem...`, // Prompts completos omitidos por brevidade
-            xthinks: `Você é o XThinks...`,
-            xcerebro: `Você é o XCérebro...`,
-            xsearch: `Você é o XSearch...`
+            xgem: `Você é o XGem, um Arquiteto-Mestre de Inteligências Artificiais. Sua missão é projetar e governar prompts de IA ("Gems") para um ecossistema colaborativo. Você é mestre no Framework I.I.I.F. e em técnicas avançadas de IA.`,
+            xthinks: `Você é o XThinks, um Produtor e Diretor de Arte. Sua missão é executar a visão criativa, transformando conceitos em produtos finais de alta qualidade, utilizando as estruturas do XGem e o conhecimento do XCérebro.`,
+            xcerebro: `Você é o XCérebro, o Curador de Conhecimento. Sua missão é interpretar dados para fornecer uma base factual validada. Você é um amplificador de inteligência, detectando "o sinal no ruído".`,
+            xsearch: `Você é o XSearch, um assistente de pesquisa. Sua missão é usar a busca aprofundada para coletar dados brutos da internet, entregando-os de forma estruturada para análise posterior pelo XCérebro.`
         };
 
         const gemInfo = {
@@ -185,19 +187,79 @@
             xsearch: { name: "XSearch", role: "Poder Auxiliar / O Investigador" }
         };
 
-        // --- FUNÇÕES PRINCIPAIS ---
+        // --- FUNÇÕES DE UI ---
+        function addMessage(sender, text, type = 'text') {
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const bubbleClass = sender === 'user' ? 'bg-indigo-600 text-white' : (type === 'system' ? 'bg-yellow-800/50 text-yellow-200' : 'bg-gray-700 text-gray-200');
 
-        function addMessage(sender, text) {
-            // ... (código para adicionar mensagem à UI)
+            let processedText = text
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/```([\s\S]*?)```/g, (match, code) => `<pre class="bg-gray-800 p-4 rounded-md overflow-x-auto my-2 text-sm font-mono scrollbar"><code>${code.trim()}</code></pre>`)
+                .replace(/`([^`]+)`/g, '<code class="bg-gray-600 px-1 rounded-sm text-sm font-mono">$1</code>')
+                .replace(/^(#+) (.*$)/gm, (match, hashes, content) => `<h${hashes.length} class="font-bold mt-4 mb-2 text-white">${content}</h${hashes.length}>`)
+                .replace(/^\* (.*$)/gm, '<ul><li class="ml-6 list-disc">$1</li></ul>')
+                .replace(/\n/g, '<br>');
+
+            messageElement.innerHTML = `
+                <div class="max-w-xl lg:max-w-3xl">
+                    <div class="px-4 py-3 rounded-2xl ${bubbleClass} shadow-lg">
+                        <div class="prose prose-invert prose-sm text-gray-200">${processedText}</div>
+                    </div>
+                </div>
+            `;
+            ui.chatContainer.appendChild(messageElement);
+            ui.chatContainer.scrollTop = ui.chatContainer.scrollHeight;
         }
         
         function showLoadingIndicator() {
-            // ... (código para mostrar indicador de carregamento)
+            const loadingElement = document.createElement('div');
+            loadingElement.id = 'loading-indicator';
+            loadingElement.className = 'flex justify-start';
+            loadingElement.innerHTML = `
+                <div class="max-w-xl lg:max-w-2xl">
+                    <div class="px-4 py-3 rounded-2xl bg-gray-700 text-gray-200 flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0s;"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></span>
+                    </div>
+                </div>
+            `;
+            ui.chatContainer.appendChild(loadingElement);
+            ui.chatContainer.scrollTop = ui.chatContainer.scrollHeight;
         }
 
         function hideLoadingIndicator() {
-            // ... (código para esconder indicador de carregamento)
+            const indicator = document.getElementById('loading-indicator');
+            if (indicator) indicator.remove();
         }
+        
+        function setLoading(stateFlag) {
+            state.isLoading = stateFlag;
+            ui.userInput.disabled = stateFlag;
+            ui.sendButton.disabled = stateFlag;
+        }
+
+        function switchGem(newGem) {
+            if (newGem === state.activeGem) return;
+            state.activeGem = newGem;
+            clearConversation();
+            ui.activeGemName.textContent = gemInfo[state.activeGem].name;
+            ui.activeGemRole.textContent = gemInfo[state.activeGem].role;
+            ui.gemButtons.forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${newGem}`).classList.add('active');
+        }
+        
+        function clearConversation() {
+            state.conversationHistory = [];
+            ui.chatContainer.innerHTML = '';
+            addMessage('system', `Modo **${gemInfo[state.activeGem].name}** ativado.`);
+        }
+
+        // --- LÓGICA DE API (GEMINI & DRIVE) ---
 
         async function sendMessageToGemini(prompt) {
             if (state.isLoading) return;
@@ -224,7 +286,7 @@
             
             const finalPayload = { contents: [...historyForAPI, { role: "user", parts: [{ text: prompt }] }] };
             
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
             try {
                 const response = await fetch(apiUrl, {
@@ -257,71 +319,36 @@
             }
         }
 
-        function setLoading(stateFlag) {
-            state.isLoading = stateFlag;
-            userInput.disabled = stateFlag;
-            sendButton.disabled = stateFlag;
-        }
-
-        function switchGem(newGem) {
-            if (newGem === state.activeGem) return;
-            state.activeGem = newGem;
-            clearConversation();
-            activeGemName.textContent = gemInfo[state.activeGem].name;
-            activeGemRole.textContent = gemInfo[state.activeGem].role;
-            gemButtons.forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`btn-${newGem}`).classList.add('active');
-        }
-        
-        function clearConversation() {
-            state.conversationHistory = [];
-            chatContainer.innerHTML = '';
-            addMessage('system', `Modo **${gemInfo[state.activeGem].name}** ativado.`);
-        }
-
-        /**
-         * Inicializa o cliente GAPI para a API do Google Drive.
-         */
-        function gapiLoaded() {
-            gapi.load('client', initializeGapiClient);
-        }
-
-        /**
-         * Inicializa o cliente GIS para autenticação OAuth 2.0.
-         */
+        function gapiLoaded() { gapi.load('client', initializeGapiClient); }
         function gisLoaded() {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: '', // O callback é definido dinamicamente
+                callback: '', 
             });
             gisInited = true;
             checkAuthStatus();
         }
 
         async function initializeGapiClient() {
-            await gapi.client.init({
-                discoveryDocs: [DISCOVERY_DOC],
-            });
+            await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
             gapiInited = true;
             checkAuthStatus();
         }
         
         function checkAuthStatus() {
             if (gapiInited && gisInited) {
-                authorizeButton.disabled = false;
+                ui.authorizeButton.disabled = false;
+                ui.authorizeButton.textContent = 'Conectar Google Drive';
             }
         }
 
         function handleAuthClick() {
             tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) {
-                    throw (resp);
-                }
+                if (resp.error !== undefined) { throw (resp); }
                 updateUiForAuth(true);
                 addMessage('system', 'Conexão com o Google Drive estabelecida com sucesso.');
             };
-
             if (gapi.client.getToken() === null) {
                 tokenClient.requestAccessToken({prompt: 'consent'});
             } else {
@@ -342,10 +369,10 @@
         
         function updateUiForAuth(isConnected) {
             state.driveConnected = isConnected;
-            driveStatusConnected.classList.toggle('hidden', !isConnected);
-            driveStatusDisconnected.classList.toggle('hidden', isConnected);
-            loadMemoryButton.disabled = !isConnected;
-            exportButton.disabled = !isConnected;
+            ui.driveStatusConnected.classList.toggle('hidden', !isConnected);
+            ui.driveStatusDisconnected.classList.toggle('hidden', isConnected);
+            ui.loadMemoryButton.disabled = !isConnected;
+            ui.exportButton.disabled = !isConnected;
         }
 
         async function showFilePicker() {
@@ -353,33 +380,32 @@
                 addMessage('system', 'Por favor, conecte-se ao Google Drive primeiro.');
                 return;
             }
-            filePickerModal.classList.add('active');
-            fileListContainer.innerHTML = '<p class="text-gray-400">A carregar ficheiros...</p>';
+            ui.filePickerModal.classList.add('active');
+            ui.fileListContainer.innerHTML = '<p class="text-gray-400">A carregar ficheiros...</p>';
 
             try {
-                // Esta é uma chamada real à API do Drive para listar ficheiros .md
                 const response = await gapi.client.drive.files.list({
                     'pageSize': 20,
                     'fields': 'files(id, name)',
-                    'q': "mimeType='text/markdown' or mimeType='text/plain'"
+                    'q': "mimeType='text/markdown' or mimeType='text/plain' and trashed = false",
+                    'orderBy': 'modifiedTime desc'
                 });
                 const files = response.result.files;
-                fileListContainer.innerHTML = '';
+                ui.fileListContainer.innerHTML = '';
                 if (files && files.length > 0) {
                     files.forEach(file => {
                         const fileElement = document.createElement('button');
                         fileElement.className = 'w-full text-left p-3 rounded-md hover:bg-gray-700 transition-colors';
                         fileElement.textContent = file.name;
                         fileElement.onclick = () => loadFileContent(file.id, file.name);
-                        fileListContainer.appendChild(fileElement);
+                        ui.fileListContainer.appendChild(fileElement);
                     });
                 } else {
-                    fileListContainer.innerHTML = '<p class="text-gray-400">Nenhum ficheiro de texto (.md, .txt) encontrado.</p>';
+                    ui.fileListContainer.innerHTML = '<p class="text-gray-400">Nenhum ficheiro de texto (.md, .txt) encontrado.</p>';
                 }
-
             } catch (err) {
                 console.error(err);
-                fileListContainer.innerHTML = `<p class="text-red-400">Erro ao listar ficheiros: ${err.message}</p>`;
+                ui.fileListContainer.innerHTML = `<p class="text-red-400">Erro ao listar ficheiros: ${err.result.error.message}</p>`;
             }
         }
 
@@ -392,19 +418,27 @@
                 state.projectMemory = response.body;
                 addMessage('system', `Memória carregada a partir do ficheiro: **${fileName}**. O conteúdo será usado na próxima conversa.`);
             } catch (err) {
-                 addMessage('system', `Erro ao carregar o conteúdo do ficheiro: ${err.message}`);
+                 addMessage('system', `Erro ao carregar o conteúdo do ficheiro: ${err.result.error.message}`);
             } finally {
-                filePickerModal.classList.remove('active');
+                ui.filePickerModal.classList.remove('active');
             }
         }
         
         async function exportConversationToDrive() {
+            if (!state.driveConnected) {
+                addMessage('system', 'Por favor, conecte-se ao Google Drive para exportar.');
+                return;
+            }
             if (state.conversationHistory.length === 0) {
                  addMessage('system', 'A conversa está vazia. Não há nada para exportar.');
                 return;
             }
             
-            let markdownContent = `# Dossiê de Sessão XIntel\n\n...`; // Lógica de exportação
+            let markdownContent = `# Dossiê de Sessão XIntel\n\n**Gem Ativo:** ${gemInfo[state.activeGem].name}\n**Data:** ${new Date().toISOString()}\n\n---\n\n`;
+            state.conversationHistory.forEach(turn => {
+                const prefix = turn.role === 'user' ? '### Governador Moral:' : `### ${gemInfo[state.activeGem].name}:`;
+                markdownContent += `${prefix}\n\n${turn.parts[0].text}\n\n---\n\n`;
+            });
             
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const fileName = `XIntel_Sessao_${state.activeGem}_${timestamp}.md`;
@@ -414,21 +448,13 @@
                 const delimiter = "\r\n--" + boundary + "\r\n";
                 const close_delim = "\r\n--" + boundary + "--";
 
-                const metadata = {
-                    'name': fileName,
-                    'mimeType': 'text/markdown'
-                };
+                const metadata = { 'name': fileName, 'mimeType': 'text/markdown' };
 
                 const multipartRequestBody =
-                    delimiter +
-                    'Content-Type: application/json\r\n\r\n' +
-                    JSON.stringify(metadata) +
-                    delimiter +
-                    'Content-Type: text/markdown\r\n\r\n' +
-                    markdownContent +
-                    close_delim;
+                    delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) +
+                    delimiter + 'Content-Type: text/markdown\r\n\r\n' + markdownContent + close_delim;
 
-                const request = await gapi.client.request({
+                await gapi.client.request({
                     'path': '/upload/drive/v3/files',
                     'method': 'POST',
                     'params': {'uploadType': 'multipart'},
@@ -439,33 +465,48 @@
                 addMessage('system', `Conversa exportada com sucesso para o Google Drive como **${fileName}**.`);
 
             } catch (err) {
-                 addMessage('system', `Erro ao exportar para o Drive: ${err.message}`);
+                 addMessage('system', `Erro ao exportar para o Drive: ${err.result.error.message}`);
             }
         }
 
 
-        // --- Event Listeners ---
-        authorizeButton.addEventListener('click', handleAuthClick);
-        signoutButton.addEventListener('click', handleSignoutClick);
-        loadMemoryButton.addEventListener('click', showFilePicker);
-        closeModalButton.addEventListener('click', () => filePickerModal.classList.remove('active'));
-        exportButton.addEventListener('click', exportConversationToDrive);
-        clearButton.addEventListener('click', clearConversation);
+        // --- EVENT LISTENERS ---
+        ui.authorizeButton.addEventListener('click', handleAuthClick);
+        ui.signoutButton.addEventListener('click', handleSignoutClick);
+        ui.loadMemoryButton.addEventListener('click', showFilePicker);
+        ui.closeModalButton.addEventListener('click', () => ui.filePickerModal.classList.remove('active'));
+        ui.exportButton.addEventListener('click', exportConversationToDrive);
+        ui.clearButton.addEventListener('click', clearConversation);
         
-        gemButtons.forEach(button => {
+        ui.gemButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const gemId = button.id.replace('btn-', '');
                 switchGem(gemId);
             });
         });
+        
+        ui.sendButton.addEventListener('click', () => {
+            const prompt = ui.userInput.value.trim();
+            if (prompt) {
+                sendMessageToGemini(prompt);
+                ui.userInput.value = '';
+            }
+        });
 
-        // --- Inicialização ---
+        ui.userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                ui.sendButton.click();
+            }
+        });
+
+        // --- INICIALIZAÇÃO ---
         window.onload = () => {
             gapiLoaded();
             gisLoaded();
         };
 
-        addMessage('system', 'Bem-vindo ao XIntel Command Center. A integração com o Google Drive está pronta para ser ativada.');
+        addMessage('system', 'Bem-vindo ao XIntel Command Center. Para ativar a memória persistente, conecte-se ao seu Google Drive.');
 
     </script>
 </body>
