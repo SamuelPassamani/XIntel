@@ -9,6 +9,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Google API Client Library -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
         .scrollbar::-webkit-scrollbar { width: 8px; }
@@ -137,7 +141,7 @@
         const GOOGLE_CLIENT_ID = '356634970750-rib59b62v1h4k4r2qme8c76a9one10pf.apps.googleusercontent.com';
         const GOOGLE_DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
-        let GEMINI_API_KEY = 'AIzaSyAnXS2Mg_XlR78L1l08q5rSIsXvhwtt2L4';
+        let GEMINI_API_KEY = '';
 
         // --- ESTADO DA APLICAÇÃO ---
         const state = {
@@ -207,7 +211,9 @@
 
         async function initializeGapiClient() {
             try {
+                // Adiciona a chave de API aqui para a inicialização do GAPI
                 await gapi.client.init({
+                    apiKey: GEMINI_API_KEY,
                     discoveryDocs: [GOOGLE_DISCOVERY_DOC],
                 });
                 state.gapiReady = true;
@@ -524,12 +530,9 @@
             ui.settingsModal.classList.remove('active');
             if (GEMINI_API_KEY) {
                 showToast('Chave de API guardada com sucesso.');
-                // ########## CORREÇÃO APLICADA AQUI ##########
-                // Se a API GAPI ainda não estiver pronta, tenta inicializá-la novamente com a nova chave.
                 if (!state.gapiReady) {
                     initializeGapiClient();
                 }
-                // #############################################
             } else {
                 showToast('Chave de API removida.', 'error');
             }
