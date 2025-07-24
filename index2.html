@@ -9,36 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Correção: Mover as funções de callback para o <head> para que estejam no escopo global -->
-    <script>
-        // --- INICIALIZAÇÃO DAS APIS GOOGLE (SOLUÇÃO DO BUG) ---
-
-        /**
-         * Função chamada pelo 'onload' do script da Google API (gapi).
-         * Inicia o carregamento do cliente GAPI e do Picker.
-         */
-        function gapiLoaded() {
-            gapi.load('client:picker', initializeGapiClient);
-        }
-
-        /**
-         * Função chamada pelo 'onload' do script da Google Identity Services (gis).
-         * Inicializa o cliente de token para o fluxo OAuth.
-         */
-        function gisLoaded() {
-            state.tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: GOOGLE_SCOPES,
-                callback: '', // O callback será tratado na chamada `requestAccessToken`
-            });
-            state.gisReady = true;
-            checkApisReady();
-        }
-    </script>
-
     <!-- Google API Client Library -->
-    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -64,8 +37,6 @@
         <div>
             <h1 class="text-2xl font-bold text-white mb-2">XIntel</h1>
             <h2 class="text-sm text-indigo-400 mb-8">Ecossistema de Inteligência</h2>
-
-            <!-- Secção de Poderes -->
             <nav class="space-y-2">
                 <h3 class="text-xs uppercase text-gray-400 font-semibold tracking-wider px-4">Poderes</h3>
                 <button id="btn-xgem" class="gem-button w-full text-left px-4 py-2 rounded-lg flex items-center space-x-3 active">
@@ -85,8 +56,6 @@
                     <span>XSearch <span class="text-xs text-gray-400 block">Investigador</span></span>
                 </button>
             </nav>
-            
-            <!-- Secção de Memória / Drive -->
             <div class="mt-8">
                 <h3 class="text-xs uppercase text-gray-400 font-semibold tracking-wider px-4 mb-2">Memória Persistente</h3>
                 <div id="drive-status-disconnected" class="p-4 bg-gray-700/50 rounded-lg">
@@ -100,8 +69,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Perfil do Governador Moral -->
         <div class="border-t border-gray-700 pt-4">
             <div class="flex items-center space-x-3 px-4">
                 <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white flex-shrink-0">SP</div>
@@ -178,7 +145,7 @@
         const GOOGLE_CLIENT_ID = '356634970750-rib59b62v1h4k4r2qme8c76a9one10pf.apps.googleusercontent.com';
         const GOOGLE_DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
-        let GEMINI_API_KEY = 'AIzaSyDSC0yKmPh76NDuzOJs1oZjXff2c-yL0t4';
+        let GEMINI_API_KEY = '';
 
         // --- ESTADO DA APLICAÇÃO ---
         const state = {
@@ -230,8 +197,21 @@
             xsearch: { name: "XSearch", role: "Poder Auxiliar / O Investigador" }
         };
 
-        // --- INICIALIZAÇÃO DAS APIS GOOGLE (SOLUÇÃO DO BUG) ---
-        
+        // --- FUNÇÕES DE CALLBACK GLOBAIS PARA APIs GOOGLE ---
+        function gapiLoaded() {
+            gapi.load('client:picker', initializeGapiClient);
+        }
+
+        function gisLoaded() {
+            state.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: '', // O callback será tratado na chamada `requestAccessToken`
+            });
+            state.gisReady = true;
+            checkApisReady();
+        }
+
         async function initializeGapiClient() {
             try {
                 await gapi.client.init({
@@ -559,7 +539,6 @@
         
         // --- INICIALIZAÇÃO DA APLICAÇÃO ---
         addMessage('system', 'Bem-vindo ao XIntel Command Center v2.5. As APIs do Google estão a ser inicializadas...');
-
     </script>
 </body>
 </html>
