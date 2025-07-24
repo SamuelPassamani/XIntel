@@ -211,9 +211,7 @@
 
         async function initializeGapiClient() {
             try {
-                // Adiciona a chave de API aqui para a inicialização do GAPI
                 await gapi.client.init({
-                    apiKey: GEMINI_API_KEY,
                     discoveryDocs: [GOOGLE_DISCOVERY_DOC],
                 });
                 state.gapiReady = true;
@@ -304,7 +302,7 @@
             const starredView = new google.picker.View(google.picker.ViewId.STARRED);
         
             const picker = new google.picker.PickerBuilder()
-                .setTitle('Selecionar arquivos')
+                .setTitle('Selecionar arquivos') // Adiciona o título
                 .addView(recentView)
                 .addView(driveView)
                 .addView(sharedView)
@@ -530,9 +528,6 @@
             ui.settingsModal.classList.remove('active');
             if (GEMINI_API_KEY) {
                 showToast('Chave de API guardada com sucesso.');
-                if (!state.gapiReady) {
-                    initializeGapiClient();
-                }
             } else {
                 showToast('Chave de API removida.', 'error');
             }
