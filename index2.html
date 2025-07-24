@@ -9,10 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Google API Client Library -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-    
     <style>
         body { font-family: 'Inter', sans-serif; }
         .scrollbar::-webkit-scrollbar { width: 8px; }
@@ -528,6 +524,12 @@
             ui.settingsModal.classList.remove('active');
             if (GEMINI_API_KEY) {
                 showToast('Chave de API guardada com sucesso.');
+                // ########## CORREÇÃO APLICADA AQUI ##########
+                // Se a API GAPI ainda não estiver pronta, tenta inicializá-la novamente com a nova chave.
+                if (!state.gapiReady) {
+                    initializeGapiClient();
+                }
+                // #############################################
             } else {
                 showToast('Chave de API removida.', 'error');
             }
