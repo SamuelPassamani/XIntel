@@ -288,19 +288,26 @@
                 showToast('A chave de API do programador é necessária para o seletor de ficheiros. Por favor, insira-a nas configurações.', 'error');
                 return;
             }
-
-            const view = new google.picker.View(google.picker.ViewId.DOCS);
+        
             const token = gapi.client.getToken();
             if (!token) {
                 showToast('Sessão de autenticação inválida. Por favor, reconecte o Drive.', 'error');
                 return;
             }
-
+        
+            // Criação das diferentes visualizações (abas)
+            const recentView = new google.picker.View(google.picker.ViewId.RECENTLY_PICKED);
+            const driveView = new google.picker.View(google.picker.ViewId.DRIVE);
+            const sharedView = new google.picker.View(google.picker.ViewId.SHARED_WITH_ME);
+            const starredView = new google.picker.View(google.picker.ViewId.STARRED);
+        
             const picker = new google.picker.PickerBuilder()
-                .enableFeature(google.picker.Feature.NAV_HIDDEN)
-                .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
+                .setTitle('Selecionar arquivos') // Adiciona o título
+                .addView(recentView)
+                .addView(driveView)
+                .addView(sharedView)
+                .addView(starredView)
                 .setOAuthToken(token.access_token)
-                .addView(view)
                 .setDeveloperKey(GEMINI_API_KEY)
                 .setCallback(pickerCallback)
                 .build();
