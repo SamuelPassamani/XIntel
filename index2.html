@@ -8,9 +8,38 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Correção: Mover as funções de callback para o <head> para que estejam no escopo global -->
+    <script>
+        // --- INICIALIZAÇÃO DAS APIS GOOGLE (SOLUÇÃO DO BUG) ---
+
+        /**
+         * Função chamada pelo 'onload' do script da Google API (gapi).
+         * Inicia o carregamento do cliente GAPI e do Picker.
+         */
+        function gapiLoaded() {
+            gapi.load('client:picker', initializeGapiClient);
+        }
+
+        /**
+         * Função chamada pelo 'onload' do script da Google Identity Services (gis).
+         * Inicializa o cliente de token para o fluxo OAuth.
+         */
+        function gisLoaded() {
+            state.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: '', // O callback será tratado na chamada `requestAccessToken`
+            });
+            state.gisReady = true;
+            checkApisReady();
+        }
+    </script>
+
     <!-- Google API Client Library -->
     <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
         .scrollbar::-webkit-scrollbar { width: 8px; }
@@ -202,21 +231,7 @@
         };
 
         // --- INICIALIZAÇÃO DAS APIS GOOGLE (SOLUÇÃO DO BUG) ---
-
-        function gapiLoaded() {
-            gapi.load('client:picker', initializeGapiClient);
-        }
-
-        function gisLoaded() {
-            state.tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: GOOGLE_SCOPES,
-                callback: '', 
-            });
-            state.gisReady = true;
-            checkApisReady();
-        }
-
+        
         async function initializeGapiClient() {
             try {
                 await gapi.client.init({
