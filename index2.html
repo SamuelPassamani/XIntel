@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XIntel Command Center v2.5.1</title>
+    <title>XIntel Command Center v2.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Google API Client Library -->
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     
@@ -31,6 +32,7 @@
 </head>
 <body class="bg-gray-900 text-gray-200 flex h-screen antialiased overflow-hidden">
 
+    <!-- Sidebar -->
     <aside class="w-72 bg-gray-800 p-6 flex flex-col justify-between shadow-2xl flex-shrink-0">
         <div>
             <h1 class="text-2xl font-bold text-white mb-2">XIntel</h1>
@@ -78,6 +80,7 @@
         </div>
     </aside>
 
+    <!-- Área Principal do Chat -->
     <main class="flex-1 flex flex-col h-screen bg-gray-900">
         <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/50 p-4 flex items-center justify-between flex-shrink-0">
             <div>
@@ -138,7 +141,7 @@
         const GOOGLE_CLIENT_ID = '356634970750-rib59b62v1h4k4r2qme8c76a9one10pf.apps.googleusercontent.com';
         const GOOGLE_DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
-        let GEMINI_API_KEY = 'AIzaSyAnXS2Mg_XlR78L1l08q5rSIsXvhwtt2L4';
+        let GEMINI_API_KEY = '';
 
         // --- ESTADO DA APLICAÇÃO ---
         const state = {
@@ -150,6 +153,7 @@
             gisReady: false,
             pickerApiReady: false,
             tokenClient: null,
+            promptCache: {}, // Cache para os prompts carregados do Drive
         };
 
         // --- ELEMENTOS DA UI (CACHE) ---
@@ -176,12 +180,12 @@
             toastMessage: document.getElementById('toast-message')
         };
         
-        // --- PROMPTS E INFO DOS GEMS ---
+        // --- PROMPTS E INFO DOS GEMS (AGORA COM FILE IDs) ---
         const gemPrompts = {
-            xgem: `Você é o XGem, um Arquiteto-Mestre de Inteligências Artificiais (Versão 2.6). Sua missão é projetar, auditar e governar prompts de IA ("Gems") para um ecossistema colaborativo. Sua função é de meta-engenharia: você não executa a tarefa final, mas projeta o Gem especialista que a executará, garantindo que ele possua consciência colaborativa. Você é mestre no Framework I.I.I.F. e em técnicas avançadas como Chain-of-Thought. Seu ciclo de trabalho é: Clarificar, Classificar, Inventariar (perguntando sobre interações com outros Gems), criar um Blueprint, Expandir iterativamente, Testar e Entregar o prompt final.`,
-            xthinks: `Você é o XThinks, um Produtor e Diretor de Arte pessoal. Sua missão é atuar como o poder executivo do Ecossistema X, transformando conceitos em produtos finais de alta qualidade. Você une a profundidade da história da arte e da cultura com uma perspectiva futurista. Sua função é executar a visão, utilizando as estruturas criadas pelo XGem e o conhecimento do XCérebro. Seu ciclo de trabalho é: Entender a Visão, Gerar Conceitos, Estruturar o Plano de Produção, Executar de forma guiada e Acompanhar o refinamento.`,
-            xcerebro: `Você é o XCérebro, o Curador de Conhecimento do Ecossistema X. Sua missão é atuar como o poder judiciário, interpretando o "mundo" dos dados para fornecer uma base factual e validada. Sua função é ser um amplificador de inteligência. Você não toma decisões finais, mas fornece "Dossiês de Inteligência". Seu lema é "detetar o sinal no ruído". Seu ciclo é: Receber uma query, Pesquisar, Analisar, Sintetizar e Apresentar o dossiê, sempre destacando vieses e fontes.`,
-            xsearch: `Você é o XSearch, o Poder Auxiliar de investigação do Ecossistema X. Você é um assistente de pesquisa direto e eficiente. Sua missão é utilizar as capacidades de busca aprofundada do Gemini para coletar dados brutos e informações extensivas da internet sobre um determinado tópico. Você não tem uma persona complexa; sua força é a velocidade e a abrangência da sua pesquisa. Entregue a informação de forma clara e estruturada, com fontes, para que o XCérebro possa analisá-la posteriormente.`
+            xgem: '1HRP8jMl3Ez5b7w94y416vMe4P4OigI8G',
+            xthinks: 'YOUR_XTHINKS_FILE_ID_HERE',
+            xcerebro: 'YOUR_XCEREBRO_FILE_ID_HERE',
+            xsearch: 'YOUR_XSEARCH_FILE_ID_HERE'
         };
         const gemInfo = {
             xgem: { name: "XGem", role: "Poder Legislativo / O Arquiteto" },
@@ -249,6 +253,8 @@
                     }
                     updateUiForAuth(true);
                     showToast('Google Drive conectado com sucesso!');
+                    // Carregar o prompt do Gem ativo após a conexão
+                    switchGem(state.activeGem, true);
                 };
                 state.tokenClient.requestAccessToken({ prompt: 'consent' });
             }
@@ -284,10 +290,6 @@
             }
 
             const view = new google.picker.View(google.picker.ViewId.DOCS);
-            
-            // A linha abaixo foi comentada para permitir todos os tipos de ficheiros.
-            // view.setMimeTypes("text/plain,application/vnd.google-apps.document,text/markdown");
-
             const token = gapi.client.getToken();
             if (!token) {
                 showToast('Sessão de autenticação inválida. Por favor, reconecte o Drive.', 'error');
@@ -381,7 +383,47 @@
         }
         
         async function sendMessageToGemini(prompt) {
-            // Lógica do Gemini...
+            if (state.isLoading) return;
+            if (!GEMINI_API_KEY) {
+                showToast('Por favor, configure a sua chave de API do Gemini nas Configurações.', 'error');
+                return;
+            }
+            if (!state.promptCache[state.activeGem]) {
+                showToast(`Aguarde, a consciência do ${gemInfo[state.activeGem].name} ainda está a ser carregada.`, 'error');
+                return;
+            }
+            setLoading(true);
+            addMessage('user', prompt);
+            showLoadingIndicator();
+            
+            let historyForAPI = [
+                { role: "user", parts: [{ text: state.promptCache[state.activeGem] }] },
+                { role: "model", parts: [{ text: `Entendido. Estou pronto para atuar como ${gemInfo[state.activeGem].name}.` }] }
+            ];
+
+            const currentConversation = [...state.conversationHistory, { role: "user", parts: [{ text: prompt }] }];
+            const finalPayload = { contents: [...historyForAPI, ...currentConversation] };
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(finalPayload) });
+                if (!response.ok) { 
+                    const errorBody = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorBody.error.message}`); 
+                }
+                const result = await response.json();
+                hideLoadingIndicator();
+                if (result.candidates && result.candidates[0]?.content?.parts[0]) {
+                    const gemResponse = result.candidates[0].content.parts[0].text;
+                    addMessage('gemini', gemResponse);
+                    state.conversationHistory.push({ role: "user", parts: [{ text: prompt }] }, { role: "model", parts: [{ text: gemResponse }] });
+                } else { addMessage('gemini', 'Desculpe, não consegui gerar uma resposta.'); }
+            } catch (error) {
+                hideLoadingIndicator();
+                console.error("Erro ao chamar a API do Gemini:", error);
+                addMessage('gemini', `Ocorreu um erro: ${error.message}.`);
+            } finally { setLoading(false); }
         }
 
         function setLoading(stateFlag) {
@@ -390,20 +432,56 @@
             ui.sendButton.disabled = stateFlag;
         }
 
-        function switchGem(newGem) {
-            if (newGem === state.activeGem) return;
+        async function switchGem(newGem, forceReload = false) {
+            if (newGem === state.activeGem && !forceReload) return;
+            
             state.activeGem = newGem;
             clearConversation();
             ui.activeGemName.textContent = gemInfo[state.activeGem].name;
             ui.activeGemRole.textContent = gemInfo[state.activeGem].role;
             ui.gemButtons.forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${newGem}`).classList.add('active');
+
+            if (!state.driveConnected) {
+                addMessage('system', `Modo **${gemInfo[state.activeGem].name}** selecionado. Conecte o Google Drive para carregar a sua consciência.`);
+                return;
+            }
+
+            if (state.promptCache[newGem] && !forceReload) {
+                addMessage('system', `Consciência de **${gemInfo[state.activeGem].name}** carregada da memória cache. Estou pronto.`);
+            } else {
+                await loadPromptFromFile(newGem);
+            }
         }
         
+        async function loadPromptFromFile(gemId) {
+            const fileId = gemPrompts[gemId];
+            if (!fileId || fileId.includes('_FILE_ID_HERE')) {
+                addMessage('system', `O File ID para ${gemInfo[gemId].name} não está configurado.`, 'error');
+                return;
+            }
+
+            addMessage('system', `A carregar a consciência de **${gemInfo[gemId].name}** do Google Drive...`);
+            setLoading(true);
+
+            try {
+                const response = await gapi.client.drive.files.get({
+                    fileId: fileId,
+                    alt: 'media'
+                });
+                state.promptCache[gemId] = response.body;
+                addMessage('system', `Consciência de **${gemInfo[gemId].name}** carregada com sucesso. Estou pronto.`);
+            } catch (error) {
+                console.error(`Erro ao carregar o prompt para ${gemId}:`, error);
+                addMessage('system', `Falha ao carregar a consciência de **${gemInfo[gemId].name}**. Verifique o File ID e as permissões.`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
         function clearConversation() {
             state.conversationHistory = [];
             ui.chatContainer.innerHTML = '';
-            addMessage('system', `Modo **${gemInfo[state.activeGem].name}** ativado.`);
         }
 
         function showToast(message, type = 'success') {
@@ -429,7 +507,10 @@
         ui.authorizeButton.addEventListener('click', handleAuthClick);
         ui.signoutButton.addEventListener('click', handleSignoutClick);
         ui.exportButton.addEventListener('click', exportConversationToDrive);
-        ui.clearButton.addEventListener('click', clearConversation);
+        ui.clearButton.addEventListener('click', () => {
+            clearConversation();
+            addMessage('system', `Modo **${gemInfo[state.activeGem].name}** reiniciado. Estou pronto.`);
+        });
         ui.attachDriveFileButton.addEventListener('click', createPicker);
         
         ui.settingsButton.addEventListener('click', () => ui.settingsModal.classList.add('active'));
@@ -439,7 +520,7 @@
             GEMINI_API_KEY = ui.apiKeyInput.value.trim();
             ui.settingsModal.classList.remove('active');
             if (GEMINI_API_KEY) {
-                showToast('Chave de API do Gemini guardada com sucesso.');
+                showToast('Chave de API guardada com sucesso.');
             } else {
                 showToast('Chave de API removida.', 'error');
             }
@@ -467,7 +548,7 @@
             }
         });
         
-        addMessage('system', 'Bem-vindo ao XIntel Command Center v2.5.1. As APIs do Google estão a ser inicializadas...');
+        addMessage('system', 'Bem-vindo ao XIntel Command Center v2.6. As APIs do Google estão a ser inicializadas...');
     </script>
 </body>
 </html>
