@@ -208,6 +208,7 @@
         async function initializeGapiClient() {
             try {
                 await gapi.client.init({
+                    apiKey: GEMINI_API_KEY, // A chave é necessária para a inicialização
                     discoveryDocs: [GOOGLE_DISCOVERY_DOC],
                 });
                 state.gapiReady = true;
@@ -524,12 +525,9 @@
             ui.settingsModal.classList.remove('active');
             if (GEMINI_API_KEY) {
                 showToast('Chave de API guardada com sucesso.');
-                // ########## CORREÇÃO APLICADA AQUI ##########
-                // Se a API GAPI ainda não estiver pronta, tenta inicializá-la novamente com a nova chave.
                 if (!state.gapiReady) {
                     initializeGapiClient();
                 }
-                // #############################################
             } else {
                 showToast('Chave de API removida.', 'error');
             }
