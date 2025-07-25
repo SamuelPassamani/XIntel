@@ -16,8 +16,8 @@
   from = "/*"
   # Serão redirecionadas para o mesmo caminho no GitHub Pages
   to = "https://samuelpassamani.github.io/XIntel/:splat"
-  # Código de status HTTP 301: redirecionamento permanente
-  status = 301
+  # Código de status HTTP 200: redirecionamento proxy
+  status = 200
   # Garante que este redirecionamento sempre será aplicado (mesmo se houver arquivos locais)
   force = true
 
