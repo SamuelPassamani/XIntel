@@ -299,7 +299,7 @@
             const picker = new google.picker.PickerBuilder()
                 .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
                 .setOAuthToken(token.access_token)
-                .addView(view)
+                .addView(driveView)
                 .setDeveloperKey(GEMINI_API_KEY)
                 .setCallback(pickerCallback)
                 .build();
