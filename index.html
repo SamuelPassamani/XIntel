@@ -141,7 +141,7 @@
         const GOOGLE_CLIENT_ID = '356634970750-rib59b62v1h4k4r2qme8c76a9one10pf.apps.googleusercontent.com';
         const GOOGLE_DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
-        let GEMINI_API_KEY = '';
+        let GEMINI_API_KEY = 'AIzaSyAnXS2Mg_XlR78L1l08q5rSIsXvhwtt2L4';
 
         // --- ESTADO DA APLICAÇÃO ---
         const state = {
@@ -297,7 +297,6 @@
             }
 
             const picker = new google.picker.PickerBuilder()
-                .enableFeature(google.picker.Feature.NAV_HIDDEN)
                 .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
                 .setOAuthToken(token.access_token)
                 .addView(view)
