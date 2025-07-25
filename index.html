@@ -299,6 +299,7 @@
             const picker = new google.picker.PickerBuilder()
                 .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
                 .setOAuthToken(token.access_token)
+                .addView(view)
                 .addView(recentView)
                 .addView(driveView)
                 .addView(sharedView)
