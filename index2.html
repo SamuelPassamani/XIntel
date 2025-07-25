@@ -211,6 +211,8 @@
 
         async function initializeGapiClient() {
             try {
+                // CORREÇÃO: A chave de API foi removida daqui. A inicialização do gapi.client
+                // para carregar o discovery doc não precisa de chave.
                 await gapi.client.init({
                     discoveryDocs: [GOOGLE_DISCOVERY_DOC],
                 });
@@ -218,7 +220,7 @@
                 state.pickerApiReady = true;
                 checkApisReady();
             } catch (error) {
-                console.error('Erro ao inicializar o cliente GAPI:', error);
+                console.error('Erro detalhado ao inicializar o cliente GAPI:', error);
                 updateAuthorizeButton(false, 'Erro na API GAPI');
             }
         }
@@ -528,6 +530,10 @@
             ui.settingsModal.classList.remove('active');
             if (GEMINI_API_KEY) {
                 showToast('Chave de API guardada com sucesso.');
+                // CORREÇÃO: Tenta re-inicializar o GAPI se ele ainda não estiver pronto.
+                if (!state.gapiReady) {
+                    initializeGapiClient();
+                }
             } else {
                 showToast('Chave de API removida.', 'error');
             }
