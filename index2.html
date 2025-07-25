@@ -298,6 +298,7 @@
 
             const picker = new google.picker.PickerBuilder()
                 .setTitle('Selecionar arquivos')
+                .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
                 .addView(recentView)
                 .addView(driveView)
                 .addView(sharedView)
