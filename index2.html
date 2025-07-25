@@ -302,22 +302,15 @@
             const driveView = new google.picker.View(google.picker.ViewId.DRIVE);
             const sharedView = new google.picker.View(google.picker.ViewId.SHARED_WITH_ME);
             const starredView = new google.picker.View(google.picker.ViewId.STARRED);
-
-            // Opcional: exibir arquivos em modo lista
-            driveView.setMode && driveView.setMode(google.picker.DocsViewMode.LIST);
-            sharedView.setMode && sharedView.setMode(google.picker.DocsViewMode.LIST);
-            starredView.setMode && starredView.setMode(google.picker.DocsViewMode.LIST);
-
+        
             const picker = new google.picker.PickerBuilder()
                 .setTitle('Selecionar arquivos')
                 .addView(recentView)
                 .addView(driveView)
                 .addView(sharedView)
                 .addView(starredView)
-                // NÃO oculte a navegação, mantenha as abas
-                // NÃO use .enableFeature(google.picker.Feature.NAV_HIDDEN)
                 .setOAuthToken(token.access_token)
-                .setDeveloperKey('AIzaSyDSC0yKmPh76NDuzOJs1oZjXff2c-yL0t4')
+                .setDeveloperKey(GEMINI_API_KEY)
                 .setCallback(pickerCallback)
                 .build();
             picker.setVisible(true);
