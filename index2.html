@@ -297,13 +297,10 @@
             }
 
             const picker = new google.picker.PickerBuilder()
-                .setTitle('Selecionar arquivos')
+                .enableFeature(google.picker.Feature.NAV_HIDDEN)
                 .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
-                .addView(recentView)
-                .addView(driveView)
-                .addView(sharedView)
-                .addView(starredView)
                 .setOAuthToken(token.access_token)
+                .addView(view)
                 .setDeveloperKey(GEMINI_API_KEY)
                 .setCallback(pickerCallback)
                 .build();
